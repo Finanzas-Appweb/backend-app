@@ -1,0 +1,51 @@
+# Build & VS
+bin/
+obj/
+out/
+.vs/
+.vscode/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.psess
+*.vsp
+*.vspx
+*.pidb
+_ReSharper*/
+.idea/
+*.ncrunchsolution
+*.ncrunchproject
+*.DotSettings.user
+
+# Packages / publish
+packages/
+**/publish/
+*.Publish.xml
+
+# Logs & cache
+*.log
+*.tgz
+*.cache
+*.tmp
+
+# Coverage / test artifacts
+TestResults/
+coverage*/
+*.coverage
+*.coveragexml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets / settings sensibles
+appsettings.Production.json
+appsettings.*.local.json
+appsettings.Local.json
+*.Secrets.json
+secrets.json
+# permite appsettings.json y appsettings.Development.json con placeholders
+
+# EF Core design-time
+MigrationsBundle/
