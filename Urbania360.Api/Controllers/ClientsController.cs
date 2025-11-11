@@ -14,7 +14,7 @@ namespace Urbania360.Api.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/v1/clients")]
-[Authorize(Roles = "Admin,Agent")]
+[Authorize]
 [Produces("application/json")]
 public class ClientsController : ControllerBase
 {
