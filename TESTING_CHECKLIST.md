@@ -276,7 +276,9 @@ Agent:
 
 ### Autorización
 - [ ] Intentar POST /api/v1/simulations sin token → 401 Unauthorized
-- [ ] Intentar POST /api/v1/simulations con rol Client → 403 Forbidden
+- [ ] Con rol User: POST /api/v1/simulations debe funcionar → 201 Created
+- [ ] Con rol User: GET /api/v1/simulations solo debe mostrar simulaciones propias
+- [ ] Con rol Admin/Agent: GET /api/v1/simulations debe mostrar todas las simulaciones
 - [ ] Intentar POST /api/v1/banks con rol Agent → 403 Forbidden
 
 ## 9. Cálculos Financieros
@@ -329,5 +331,6 @@ Cálculos esperados:
 ## Notas
 - Registrar cualquier bug o comportamiento inesperado
 - Verificar logs de actividad en la base de datos
-- Probar con diferentes roles (Admin, Agent, Client)
+- Probar con diferentes roles (Admin, Agent, User)
+- Usuario con rol User solo puede ver sus propias simulaciones (filtradas por CreatedByUserId)
 - Validar respuestas de error con mensajes claros

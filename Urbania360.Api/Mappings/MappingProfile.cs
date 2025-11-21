@@ -15,12 +15,7 @@ public class MappingProfile : Profile
     public MappingProfile()
     {
         // User mappings
-        CreateMap<RegisterRequest, User>()
-            .ForMember(dest => dest.Role, opt => opt.MapFrom(src => (Role)src.Role))
-            .ForMember(dest => dest.Id, opt => opt.Ignore())
-            .ForMember(dest => dest.PasswordHash, opt => opt.Ignore())
-            .ForMember(dest => dest.CreatedAtUtc, opt => opt.Ignore())
-            .ForMember(dest => dest.IsActive, opt => opt.Ignore());
+        // RegisterRequest -> User mapping not needed (se crea manualmente en AuthController con rol User por defecto)
 
         CreateMap<User, UserInfo>()
             .ForMember(dest => dest.Role, opt => opt.MapFrom(src => src.Role.ToString()));

@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using Urbania360.Api.DTOs.Simulations;
 using Urbania360.Domain.Entities;
+using Urbania360.Domain.Enums;
 using Urbania360.Infrastructure.Data;
 using Urbania360.Infrastructure.Services;
 
@@ -15,7 +16,7 @@ namespace Urbania360.Api.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/v1/simulations")]
-[Authorize(Roles = "Admin,Agent")]
+[Authorize] // Cualquier usuario autenticado puede acceder
 [Produces("application/json")]
 public class SimulationsController : ControllerBase
 {
@@ -183,6 +184,7 @@ public class SimulationsController : ControllerBase
 
     /// <summary>
     /// Obtener lista de simulaciones con filtros opcionales
+    /// Admin y Agent ven todas las simulaciones, User solo ve las propias
     /// </summary>
     [HttpGet]
     [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
@@ -191,10 +193,27 @@ public class SimulationsController : ControllerBase
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 10)
     {
+        // Obtener usuario actual
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out Guid userId))
+        {
+            return Unauthorized(new { message = "Usuario no autenticado" });
+        }
+
+        // Obtener rol del usuario
+        var roleClaim = User.FindFirst(ClaimTypes.Role)?.Value;
+        var userRole = Enum.TryParse<Role>(roleClaim, out var role) ? role : Role.User;
+
         var query = _context.LoanSimulations
             .Include(s => s.Client)
             .Include(s => s.Property)
             .AsQueryable();
+
+        // Si el usuario es User (no Admin ni Agent), solo puede ver sus propias simulaciones
+        if (userRole == Role.User)
+        {
+            query = query.Where(s => s.CreatedByUserId == userId);
+        }
 
         if (clientId.HasValue)
         {
@@ -226,10 +245,12 @@ public class SimulationsController : ControllerBase
 
     /// <summary>
     /// Obtener una simulación por ID con su tabla de amortización
+    /// Admin y Agent pueden ver cualquier simulación, User solo las propias
     /// </summary>
     [HttpGet("{id}")]
     [ProducesResponseType(typeof(SimulationResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<SimulationResponse>> GetSimulation(Guid id)
     {
         var simulation = await _context.LoanSimulations
@@ -242,6 +263,23 @@ public class SimulationsController : ControllerBase
         if (simulation == null)
         {
             return NotFound(new { message = "Simulación no encontrada" });
+        }
+
+        // Obtener usuario actual
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out Guid userId))
+        {
+            return Unauthorized(new { message = "Usuario no autenticado" });
+        }
+
+        // Obtener rol del usuario
+        var roleClaim = User.FindFirst(ClaimTypes.Role)?.Value;
+        var userRole = Enum.TryParse<Role>(roleClaim, out var role) ? role : Role.User;
+
+        // Si el usuario es User (no Admin ni Agent), solo puede ver sus propias simulaciones
+        if (userRole == Role.User && simulation.CreatedByUserId != userId)
+        {
+            return Forbid(); // 403 Forbidden
         }
 
         var response = _mapper.Map<SimulationResponse>(simulation);

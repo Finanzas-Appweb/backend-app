@@ -56,11 +56,4 @@ public class RegisterRequest
     [Required(ErrorMessage = "La contraseña es requerida")]
     [StringLength(100, MinimumLength = 6, ErrorMessage = "La contraseña debe tener entre 6 y 100 caracteres")]
     public string Password { get; set; } = null!;
-
-    /// <summary>
-    /// Rol del usuario (1=Admin, 2=Agent, 3=Client)
-    /// </summary>
-    [Required(ErrorMessage = "El rol es requerido")]
-    [Range(1, 3, ErrorMessage = "El rol debe ser 1 (Admin), 2 (Agent) o 3 (Client)")]
-    public int Role { get; set; }
 }

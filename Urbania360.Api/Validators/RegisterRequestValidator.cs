@@ -37,8 +37,5 @@ public class RegisterRequestValidator : AbstractValidator<RegisterRequest>
             .NotEmpty().WithMessage("La contraseña es requerida")
             .MinimumLength(6).WithMessage("La contraseña debe tener al menos 6 caracteres")
             .MaximumLength(100).WithMessage("La contraseña no puede exceder 100 caracteres");
-
-        RuleFor(x => x.Role)
-            .InclusiveBetween(1, 3).WithMessage("El rol debe ser 1 (Admin), 2 (Agent) o 3 (Client)");
     }
 }

@@ -52,7 +52,7 @@ public class AuthController : ControllerBase
             return Conflict(new { message = "El email ya está registrado" });
         }
 
-        // Crear nuevo usuario
+        // Crear nuevo usuario con rol User por defecto
         var user = new User
         {
             Id = Guid.NewGuid(),
@@ -63,7 +63,7 @@ public class AuthController : ControllerBase
             FullName = $"{request.FirstName} {request.LastName}",
             Email = request.Email,
             Phone = request.Phone,
-            Role = (Role)request.Role,
+            Role = Role.User, // Todos los usuarios registrados obtienen rol User por defecto
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
             CreatedAtUtc = DateTime.UtcNow,
             IsActive = true
