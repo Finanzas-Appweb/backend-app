@@ -72,6 +72,9 @@ public class SimulationsController : ControllerBase
             }
         }
 
+        // Normalizar bonusAmount: si no se aplica el bono MiVivienda, forzar a 0
+        var bonusAmount = request.ApplyMiViviendaBonus ? request.BonusAmount : 0;
+
         // Preparar entrada para el calculador
         var input = new SimulationInput
         {
@@ -86,7 +89,7 @@ public class SimulationsController : ControllerBase
             GraceMonths = request.GraceMonths,
             StartDate = request.StartDate,
             ApplyMiViviendaBonus = request.ApplyMiViviendaBonus,
-            BonusAmount = request.BonusAmount,
+            BonusAmount = bonusAmount, // Usar bonusAmount normalizado
             LifeInsuranceRateMonthly = request.LifeInsuranceRateMonthly,
             RiskInsuranceRateAnnual = request.RiskInsuranceRateAnnual,
             FeesMonthly = request.FeesMonthly
@@ -120,7 +123,7 @@ public class SimulationsController : ControllerBase
             GraceMonths = request.GraceMonths,
             StartDate = request.StartDate,
             ApplyMiViviendaBonus = request.ApplyMiViviendaBonus,
-            BonusAmount = request.BonusAmount,
+            BonusAmount = bonusAmount, // Usar bonusAmount normalizado
             LifeInsuranceRateMonthly = request.LifeInsuranceRateMonthly,
             RiskInsuranceRateAnnual = request.RiskInsuranceRateAnnual,
             FeesMonthly = request.FeesMonthly,

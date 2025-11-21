@@ -63,12 +63,13 @@ public class SimulationRequestValidator : AbstractValidator<SimulationRequest>
         RuleFor(x => x.StartDate)
             .NotEmpty().WithMessage("La fecha de inicio es requerida");
 
+        // Validación del bono MiVivienda: solo se valida cuando ApplyMiViviendaBonus es true
         RuleFor(x => x.BonusAmount)
             .NotNull().When(x => x.ApplyMiViviendaBonus)
             .WithMessage("El monto del bono es requerido cuando se aplica el bono Mi Vivienda")
-            .GreaterThan(0).When(x => x.BonusAmount.HasValue)
+            .GreaterThan(0).When(x => x.ApplyMiViviendaBonus && x.BonusAmount.HasValue)
             .WithMessage("El monto del bono debe ser mayor a cero")
-            .LessThan(x => x.Principal).When(x => x.BonusAmount.HasValue)
+            .LessThan(x => x.Principal).When(x => x.ApplyMiViviendaBonus && x.BonusAmount.HasValue)
             .WithMessage("El monto del bono no puede ser mayor al préstamo principal");
 
         RuleFor(x => x.LifeInsuranceRateMonthly)
