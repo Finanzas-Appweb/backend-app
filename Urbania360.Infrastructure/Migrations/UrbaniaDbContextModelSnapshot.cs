@@ -224,11 +224,17 @@ namespace Urbania360.Infrastructure.Migrations
                     b.Property<int>("Currency")
                         .HasColumnType("int");
 
+                    b.Property<decimal>("FeesMonthly")
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<int>("GraceMonths")
                         .HasColumnType("int");
 
                     b.Property<int>("GraceType")
                         .HasColumnType("int");
+
+                    b.Property<decimal>("LifeInsuranceRateMonthly")
+                        .HasColumnType("decimal(6,4)");
 
                     b.Property<decimal?>("MonthlyPayment")
                         .HasPrecision(18, 2)
@@ -243,6 +249,9 @@ namespace Urbania360.Infrastructure.Migrations
 
                     b.Property<int>("RateType")
                         .HasColumnType("int");
+
+                    b.Property<decimal>("RiskInsuranceRateAnnual")
+                        .HasColumnType("decimal(6,4)");
 
                     b.Property<DateOnly>("StartDate")
                         .HasColumnType("date");
@@ -423,10 +432,20 @@ namespace Urbania360.Infrastructure.Migrations
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("Dni")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("nvarchar(8)");
+
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("FirstName")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("nvarchar(60)");
 
                     b.Property<string>("FullName")
                         .IsRequired()
@@ -435,6 +454,11 @@ namespace Urbania360.Infrastructure.Migrations
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
+
+                    b.Property<string>("LastName")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("nvarchar(60)");
 
                     b.Property<string>("PasswordHash")
                         .IsRequired()
@@ -448,11 +472,20 @@ namespace Urbania360.Infrastructure.Migrations
                     b.Property<int>("Role")
                         .HasColumnType("int");
 
+                    b.Property<string>("Username")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
                     b.HasKey("Id");
 
                     b.HasIndex("Email")
                         .IsUnique()
                         .HasDatabaseName("IX_Users_Email");
+
+                    b.HasIndex("Username")
+                        .IsUnique()
+                        .HasDatabaseName("IX_Users_Username");
 
                     b.ToTable("Users");
                 });

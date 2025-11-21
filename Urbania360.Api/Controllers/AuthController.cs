@@ -40,6 +40,12 @@ public class AuthController : ControllerBase
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<AuthResponse>> Register([FromBody] RegisterRequest request)
     {
+        // Verificar si el username ya existe
+        if (await _context.Users.AnyAsync(u => u.Username == request.Username))
+        {
+            return Conflict(new { message = "El nombre de usuario ya está registrado" });
+        }
+
         // Verificar si el email ya existe
         if (await _context.Users.AnyAsync(u => u.Email == request.Email))
         {
@@ -47,11 +53,21 @@ public class AuthController : ControllerBase
         }
 
         // Crear nuevo usuario
-        var user = _mapper.Map<User>(request);
-        user.Id = Guid.NewGuid();
-        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
-        user.CreatedAtUtc = DateTime.UtcNow;
-        user.IsActive = true;
+        var user = new User
+        {
+            Id = Guid.NewGuid(),
+            Username = request.Username,
+            FirstName = request.FirstName,
+            LastName = request.LastName,
+            Dni = request.Dni,
+            FullName = $"{request.FirstName} {request.LastName}",
+            Email = request.Email,
+            Phone = request.Phone,
+            Role = (Role)request.Role,
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
+            CreatedAtUtc = DateTime.UtcNow,
+            IsActive = true
+        };
 
         _context.Users.Add(user);
 

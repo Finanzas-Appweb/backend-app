@@ -51,6 +51,11 @@ public class UrbaniaDbContext : DbContext
                .HasColumnType("uniqueidentifier")
                .HasDefaultValueSql("NEWSEQUENTIALID()");
 
+        // Índice único en Username
+        builder.HasIndex(x => x.Username)
+               .IsUnique()
+               .HasDatabaseName("IX_Users_Username");
+
         // Índice único en Email
         builder.HasIndex(x => x.Email)
                .IsUnique()

@@ -1,0 +1,250 @@
+using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
+using Urbania360.Api.DTOs.Simulations;
+using Urbania360.Domain.Entities;
+using Urbania360.Infrastructure.Data;
+using Urbania360.Infrastructure.Services;
+
+namespace Urbania360.Api.Controllers;
+
+/// <summary>
+/// Controller para simulaciones de préstamos hipotecarios
+/// </summary>
+[ApiController]
+[Route("api/v1/simulations")]
+[Authorize(Roles = "Admin,Agent")]
+[Produces("application/json")]
+public class SimulationsController : ControllerBase
+{
+    private readonly UrbaniaDbContext _context;
+    private readonly IMortgageCalculatorService _calculatorService;
+    private readonly IMapper _mapper;
+
+    public SimulationsController(
+        UrbaniaDbContext context,
+        IMortgageCalculatorService calculatorService,
+        IMapper mapper)
+    {
+        _context = context;
+        _calculatorService = calculatorService;
+        _mapper = mapper;
+    }
+
+    /// <summary>
+    /// Crear una nueva simulación de préstamo
+    /// </summary>
+    [HttpPost]
+    [ProducesResponseType(typeof(SimulationResponse), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<SimulationResponse>> CreateSimulation([FromBody] SimulationRequest request)
+    {
+        // Verificar que el cliente existe
+        var client = await _context.Clients.FindAsync(request.ClientId);
+        if (client == null)
+        {
+            return NotFound(new { message = "Cliente no encontrado" });
+        }
+
+        // Verificar propiedad si se especificó
+        Property? property = null;
+        if (request.PropertyId.HasValue)
+        {
+            property = await _context.Properties.FindAsync(request.PropertyId.Value);
+            if (property == null)
+            {
+                return NotFound(new { message = "Propiedad no encontrada" });
+            }
+        }
+
+        // Verificar banco si se especificó
+        Bank? bank = null;
+        if (request.BankId.HasValue)
+        {
+            bank = await _context.Banks.FindAsync(request.BankId.Value);
+            if (bank == null)
+            {
+                return NotFound(new { message = "Banco no encontrado" });
+            }
+        }
+
+        // Preparar entrada para el calculador
+        var input = new SimulationInput
+        {
+            Principal = request.Principal,
+            Currency = request.Currency,
+            RateType = request.RateType,
+            TEA = request.TEA,
+            TNA = request.TNA,
+            CapitalizationPerYear = request.CapitalizationPerYear,
+            TermMonths = request.TermMonths,
+            GraceType = request.GraceType,
+            GraceMonths = request.GraceMonths,
+            StartDate = request.StartDate,
+            ApplyMiViviendaBonus = request.ApplyMiViviendaBonus,
+            BonusAmount = request.BonusAmount,
+            LifeInsuranceRateMonthly = request.LifeInsuranceRateMonthly,
+            RiskInsuranceRateAnnual = request.RiskInsuranceRateAnnual,
+            FeesMonthly = request.FeesMonthly
+        };
+
+        // Calcular simulación
+        var (result, schedule) = _calculatorService.Calculate(input);
+
+        // Obtener usuario actual
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out Guid userId))
+        {
+            return Unauthorized(new { message = "Usuario no autenticado" });
+        }
+
+        // Crear entidad LoanSimulation
+        var simulation = new LoanSimulation
+        {
+            Id = Guid.NewGuid(),
+            ClientId = request.ClientId,
+            PropertyId = request.PropertyId,
+            BankId = request.BankId,
+            Principal = request.Principal,
+            Currency = request.Currency,
+            RateType = request.RateType,
+            TEA = request.TEA,
+            TNA = request.TNA,
+            CapitalizationPerYear = request.CapitalizationPerYear,
+            TermMonths = request.TermMonths,
+            GraceType = request.GraceType,
+            GraceMonths = request.GraceMonths,
+            StartDate = request.StartDate,
+            ApplyMiViviendaBonus = request.ApplyMiViviendaBonus,
+            BonusAmount = request.BonusAmount,
+            LifeInsuranceRateMonthly = request.LifeInsuranceRateMonthly,
+            RiskInsuranceRateAnnual = request.RiskInsuranceRateAnnual,
+            FeesMonthly = request.FeesMonthly,
+            TEM = result.TEM,
+            MonthlyPayment = result.MonthlyPayment,
+            TCEA = result.TCEA,
+            VAN = result.VAN,
+            TIR = result.TIR,
+            TotalInterest = result.TotalInterest,
+            TotalCost = result.TotalCost,
+            CreatedByUserId = userId,
+            CreatedAtUtc = DateTime.UtcNow
+        };
+
+        _context.LoanSimulations.Add(simulation);
+
+        // Agregar items de amortización
+        foreach (var item in schedule)
+        {
+            item.SimulationId = simulation.Id;
+            _context.AmortizationItems.Add(item);
+        }
+
+        // Registrar actividad
+        var activityLog = new ActivityLog
+        {
+            UserId = userId,
+            Action = "Create",
+            Entity = "LoanSimulation",
+            EntityId = simulation.Id.ToString(),
+            CreatedAtUtc = DateTime.UtcNow
+        };
+        _context.ActivityLogs.Add(activityLog);
+
+        await _context.SaveChangesAsync();
+
+        // Cargar relaciones para respuesta
+        await _context.Entry(simulation)
+            .Reference(s => s.Client)
+            .LoadAsync();
+        
+        if (simulation.PropertyId.HasValue)
+        {
+            await _context.Entry(simulation)
+                .Reference(s => s.Property)
+                .LoadAsync();
+        }
+
+        if (simulation.BankId.HasValue)
+        {
+            await _context.Entry(simulation)
+                .Reference(s => s.Bank)
+                .LoadAsync();
+        }
+
+        var response = _mapper.Map<SimulationResponse>(simulation);
+        response.AmortizationSchedule = _mapper.Map<List<AmortizationItemResponse>>(schedule);
+
+        return CreatedAtAction(nameof(GetSimulation), new { id = simulation.Id }, response);
+    }
+
+    /// <summary>
+    /// Obtener lista de simulaciones con filtros opcionales
+    /// </summary>
+    [HttpGet]
+    [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+    public async Task<ActionResult> GetSimulations(
+        [FromQuery] Guid? clientId,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10)
+    {
+        var query = _context.LoanSimulations
+            .Include(s => s.Client)
+            .Include(s => s.Property)
+            .AsQueryable();
+
+        if (clientId.HasValue)
+        {
+            query = query.Where(s => s.ClientId == clientId.Value);
+        }
+
+        var total = await query.CountAsync();
+
+        var simulations = await query
+            .OrderByDescending(s => s.CreatedAtUtc)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        var response = _mapper.Map<List<SimulationSummaryResponse>>(simulations);
+
+        return Ok(new
+        {
+            data = response,
+            pagination = new
+            {
+                page,
+                pageSize,
+                total,
+                totalPages = (int)Math.Ceiling(total / (double)pageSize)
+            }
+        });
+    }
+
+    /// <summary>
+    /// Obtener una simulación por ID con su tabla de amortización
+    /// </summary>
+    [HttpGet("{id}")]
+    [ProducesResponseType(typeof(SimulationResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<SimulationResponse>> GetSimulation(Guid id)
+    {
+        var simulation = await _context.LoanSimulations
+            .Include(s => s.Client)
+            .Include(s => s.Property)
+            .Include(s => s.Bank)
+            .Include(s => s.AmortizationItems)
+            .FirstOrDefaultAsync(s => s.Id == id);
+
+        if (simulation == null)
+        {
+            return NotFound(new { message = "Simulación no encontrada" });
+        }
+
+        var response = _mapper.Map<SimulationResponse>(simulation);
+        return Ok(response);
+    }
+}

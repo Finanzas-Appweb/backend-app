@@ -26,6 +26,10 @@ public static class AppDbInitializer
         var adminUser = new User
         {
             Id = Guid.NewGuid(),
+            Username = "admin",
+            FirstName = "Administrador",
+            LastName = "Sistema",
+            Dni = "12345678",
             FullName = "Administrador Sistema",
             Email = "admin@urbania360.com",
             Phone = "+51999999999",
@@ -36,17 +40,45 @@ public static class AppDbInitializer
         };
 
         await context.Users.AddAsync(adminUser);
-        await context.SaveChangesAsync();
 
-        // Crear preferencias del admin
-        var adminPreference = new UserPreference
+        // Crear usuario Agent demo
+        var agentUser = new User
         {
-            UserId = adminUser.Id,
-            DefaultCurrency = Currency.PEN,
-            DefaultRateType = RateType.TEA
+            Id = Guid.NewGuid(),
+            Username = "agente",
+            FirstName = "Carlos",
+            LastName = "Agente",
+            Dni = "87654321",
+            FullName = "Carlos Agente",
+            Email = "agente@urbania360.com",
+            Phone = "+51988888888",
+            Role = Role.Agent,
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword("Password123!"),
+            CreatedAtUtc = DateTime.UtcNow,
+            IsActive = true
         };
 
-        await context.UserPreferences.AddAsync(adminPreference);
+        await context.Users.AddAsync(agentUser);
+        await context.SaveChangesAsync();
+
+        // Crear preferencias de usuarios
+        var preferences = new[]
+        {
+            new UserPreference
+            {
+                UserId = adminUser.Id,
+                DefaultCurrency = Currency.PEN,
+                DefaultRateType = RateType.TEA
+            },
+            new UserPreference
+            {
+                UserId = agentUser.Id,
+                DefaultCurrency = Currency.PEN,
+                DefaultRateType = RateType.TEA
+            }
+        };
+
+        await context.UserPreferences.AddRangeAsync(preferences);
 
         // Crear bancos
         var banks = new[]

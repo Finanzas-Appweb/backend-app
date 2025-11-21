@@ -124,4 +124,65 @@ public class ReportsController : ControllerBase
 
         return Ok(new { data = simulationStats });
     }
+
+    /// <summary>
+    /// Obtener participación de bancos en simulaciones (últimos 3 meses)
+    /// </summary>
+    /// <returns>Estadísticas de selección de entidades financieras</returns>
+    [HttpGet("entity-selection")]
+    [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+    public async Task<ActionResult> GetEntitySelection()
+    {
+        var startDate = DateTime.UtcNow.AddMonths(-3);
+
+        var totalSimulations = await _context.LoanSimulations
+            .Where(s => s.CreatedAtUtc >= startDate && s.BankId.HasValue)
+            .CountAsync();
+
+        if (totalSimulations == 0)
+        {
+            return Ok(new { data = new List<object>() });
+        }
+
+        var bankStats = await _context.LoanSimulations
+            .Where(s => s.CreatedAtUtc >= startDate && s.BankId.HasValue)
+            .Include(s => s.Bank)
+            .GroupBy(s => new { s.BankId, s.Bank!.Name })
+            .Select(g => new
+            {
+                bankName = g.Key.Name,
+                count = g.Count(),
+                percentage = Math.Round((decimal)g.Count() / totalSimulations * 100, 2)
+            })
+            .OrderByDescending(x => x.count)
+            .ToListAsync();
+
+        return Ok(new { data = bankStats });
+    }
+
+    /// <summary>
+    /// Obtener consultas de propiedades por mes (últimos 12 meses)
+    /// </summary>
+    /// <returns>Estadísticas mensuales de consultas de propiedades</returns>
+    [HttpGet("property-consults-by-month")]
+    [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+    public async Task<ActionResult> GetPropertyConsultsByMonth()
+    {
+        var startDate = DateTime.UtcNow.AddMonths(-12);
+
+        var consultStats = await _context.PropertyConsults
+            .Where(pc => pc.CreatedAtUtc >= startDate)
+            .GroupBy(pc => new { Year = pc.CreatedAtUtc.Year, Month = pc.CreatedAtUtc.Month })
+            .Select(g => new
+            {
+                year = g.Key.Year,
+                month = g.Key.Month,
+                count = g.Count()
+            })
+            .OrderBy(x => x.year)
+            .ThenBy(x => x.month)
+            .ToListAsync();
+
+        return Ok(new { data = consultStats });
+    }
 }
