@@ -5,7 +5,13 @@ namespace Urbania360.Api.DTOs.Simulations;
 /// </summary>
 public class AmortizationItemResponse
 {
-    public long Id { get; set; }
+    /// <summary>
+    /// ID del item (igual al periodo, reiniciado por simulación)
+    /// </summary>
+    public int Id { get; set; }
+    /// <summary>
+    /// Número de periodo/cuota (1, 2, 3, ...)
+    /// </summary>
     public int Period { get; set; }
     public DateOnly DueDate { get; set; }
     public decimal OpeningBalance { get; set; }

@@ -60,6 +60,8 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.ClientName, opt => opt.MapFrom(src => $"{src.Client.FirstName} {src.Client.LastName}"))
             .ForMember(dest => dest.PropertyTitle, opt => opt.MapFrom(src => src.Property != null ? src.Property.Title : null));
 
-        CreateMap<AmortizationItem, AmortizationItemResponse>();
+        // AmortizationItem: usar Period como Id en el DTO (reiniciado por simulación)
+        CreateMap<AmortizationItem, AmortizationItemResponse>()
+            .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.Period));
     }
 }

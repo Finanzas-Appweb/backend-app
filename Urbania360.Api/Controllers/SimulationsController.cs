@@ -212,10 +212,11 @@ public class SimulationsController : ControllerBase
             .Include(s => s.Property)
             .AsQueryable();
 
-        // Si el usuario es User (no Admin ni Agent), solo puede ver sus propias simulaciones
+        // Si el usuario es User (no Admin ni Agent), solo puede ver simulaciones de sus propios clientes
         if (userRole == Role.User)
         {
-            query = query.Where(s => s.CreatedByUserId == userId);
+            // Filtrar por clientes creados por el usuario actual
+            query = query.Where(s => s.Client.CreatedByUserId == userId);
         }
 
         if (clientId.HasValue)
@@ -279,13 +280,77 @@ public class SimulationsController : ControllerBase
         var roleClaim = User.FindFirst(ClaimTypes.Role)?.Value;
         var userRole = Enum.TryParse<Role>(roleClaim, out var role) ? role : Role.User;
 
-        // Si el usuario es User (no Admin ni Agent), solo puede ver sus propias simulaciones
-        if (userRole == Role.User && simulation.CreatedByUserId != userId)
+        // Si el usuario es User (no Admin ni Agent), solo puede ver simulaciones de sus propios clientes
+        if (userRole == Role.User && simulation.Client.CreatedByUserId != userId)
         {
             return Forbid(); // 403 Forbidden
         }
 
         var response = _mapper.Map<SimulationResponse>(simulation);
         return Ok(response);
+    }
+
+    /// <summary>
+    /// Eliminar una simulación y su cronograma de amortización
+    /// Admin y Agent pueden eliminar cualquier simulación, User solo las de sus propios clientes
+    /// </summary>
+    /// <param name="id">ID de la simulación</param>
+    /// <returns>Confirmación de eliminación</returns>
+    [HttpDelete("{id}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult> DeleteSimulation(Guid id)
+    {
+        // Buscar la simulación con el cliente asociado
+        var simulation = await _context.LoanSimulations
+            .Include(s => s.Client)
+            .FirstOrDefaultAsync(s => s.Id == id);
+
+        if (simulation == null)
+        {
+            return NotFound(new { message = "Simulación no encontrada" });
+        }
+
+        // Obtener usuario y rol actual
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out Guid userId))
+        {
+            return Unauthorized(new { message = "Usuario no autenticado" });
+        }
+
+        // Obtener rol del usuario
+        var roleClaim = User.FindFirst(ClaimTypes.Role)?.Value;
+        var userRole = Enum.TryParse<Role>(roleClaim, out var role) ? role : Role.User;
+
+        // Validar autorización
+        if (userRole == Role.User)
+        {
+            // User solo puede eliminar simulaciones de clientes creados por él
+            var client = simulation.Client;
+            if (client.CreatedByUserId != userId)
+            {
+                return Forbid(); // 403 Forbidden
+            }
+        }
+        // Admin y Agent pueden eliminar cualquier simulación (sin restricción)
+
+        // Eliminar la simulación (AmortizationItems se eliminan en cascada por DeleteBehavior.Cascade)
+        _context.LoanSimulations.Remove(simulation);
+
+        // Registrar actividad
+        var activityLog = new ActivityLog
+        {
+            UserId = userId,
+            Action = "Delete",
+            Entity = "LoanSimulation",
+            EntityId = simulation.Id.ToString(),
+            CreatedAtUtc = DateTime.UtcNow
+        };
+        _context.ActivityLogs.Add(activityLog);
+
+        await _context.SaveChangesAsync();
+
+        return NoContent(); // 204 No Content
     }
 }
