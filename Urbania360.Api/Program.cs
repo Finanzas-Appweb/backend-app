@@ -72,6 +72,7 @@ builder.Services.AddAuthorization();
 
 // Custom Services
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
+builder.Services.AddScoped<IMortgageCalculatorService, MortgageCalculatorService>();
 
 // Controllers
 builder.Services.AddControllers();

@@ -105,6 +105,27 @@ public class LoanSimulation
     [Column(TypeName = "decimal(18,2)")]
     public decimal? BonusAmount { get; set; }
 
+    /// <summary>
+    /// Tasa mensual del seguro de vida
+    /// </summary>
+    [Required]
+    [Column(TypeName = "decimal(6,4)")]
+    public decimal LifeInsuranceRateMonthly { get; set; }
+
+    /// <summary>
+    /// Tasa anual del seguro de riesgo
+    /// </summary>
+    [Required]
+    [Column(TypeName = "decimal(6,4)")]
+    public decimal RiskInsuranceRateAnnual { get; set; }
+
+    /// <summary>
+    /// Comisiones mensuales
+    /// </summary>
+    [Required]
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal FeesMonthly { get; set; }
+
     // Resultados cacheados para UI
     /// <summary>
     /// Tasa Efectiva Mensual calculada

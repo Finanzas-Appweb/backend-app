@@ -29,6 +29,7 @@ public class ClientsController : ControllerBase
 
     /// <summary>
     /// Obtener lista paginada de clientes
+    /// Admin y Agent ven todos los clientes, User solo ve los creados por él
     /// </summary>
     /// <param name="search">Texto de búsqueda</param>
     /// <param name="page">Número de página (default: 1)</param>
@@ -44,9 +45,19 @@ public class ClientsController : ControllerBase
         pageSize = Math.Min(pageSize, 100); // Máximo 100 elementos por página
         page = Math.Max(page, 1); // Mínimo página 1
 
+        // Obtener usuario y rol actual
+        var currentUserId = GetCurrentUserId();
+        var userRole = GetUserRole();
+
         var query = _context.Clients
             .Include(c => c.CreatedByUser)
             .AsQueryable();
+
+        // Si el usuario es User (no Admin ni Agent), solo puede ver sus propios clientes
+        if (userRole == Domain.Enums.Role.User)
+        {
+            query = query.Where(c => c.CreatedByUserId == currentUserId);
+        }
 
         // Aplicar filtro de búsqueda
         if (!string.IsNullOrWhiteSpace(search))
@@ -88,12 +99,14 @@ public class ClientsController : ControllerBase
 
     /// <summary>
     /// Obtener un cliente por ID
+    /// Admin y Agent pueden ver cualquier cliente, User solo los creados por él
     /// </summary>
     /// <param name="id">ID del cliente</param>
     /// <returns>Datos del cliente</returns>
     [HttpGet("{id}")]
     [ProducesResponseType(typeof(ClientResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<ClientResponse>> GetClient(Guid id)
     {
         var client = await _context.Clients
@@ -103,6 +116,16 @@ public class ClientsController : ControllerBase
         if (client == null)
         {
             return NotFound(new { message = "Cliente no encontrado" });
+        }
+
+        // Validar autorización
+        var currentUserId = GetCurrentUserId();
+        var userRole = GetUserRole();
+
+        // Si el usuario es User (no Admin ni Agent), solo puede ver sus propios clientes
+        if (userRole == Domain.Enums.Role.User && client.CreatedByUserId != currentUserId)
+        {
+            return Forbid(); // 403 Forbidden
         }
 
         var response = _mapper.Map<ClientResponse>(client);
@@ -257,5 +280,11 @@ public class ClientsController : ControllerBase
         }
 
         return userId;
+    }
+
+    private Domain.Enums.Role GetUserRole()
+    {
+        var roleClaim = User.FindFirst(ClaimTypes.Role)?.Value;
+        return Enum.TryParse<Domain.Enums.Role>(roleClaim, out var role) ? role : Domain.Enums.Role.User;
     }
 }

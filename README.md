@@ -214,7 +214,7 @@ Las siguientes entidades están modeladas pero **sin endpoints**:
 ## 🛡️ Seguridad
 
 - ✅ **JWT Authentication** con expiración de 12 horas
-- ✅ **Role-based Authorization** (Admin, Agent, Client)
+- ✅ **Role-based Authorization** (Admin, Agent, User)
 - ✅ **Password Hashing** con BCrypt
 - ✅ **Input Validation** con FluentValidation
 - ✅ **CORS** configurado para frontend

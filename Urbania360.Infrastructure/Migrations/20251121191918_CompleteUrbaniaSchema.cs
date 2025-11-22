@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Urbania360.Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreate : Migration
+    public partial class CompleteUrbaniaSchema : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -32,6 +32,10 @@ namespace Urbania360.Infrastructure.Migrations
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false, defaultValueSql: "NEWSEQUENTIALID()"),
+                    Username = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    FirstName = table.Column<string>(type: "nvarchar(60)", maxLength: 60, nullable: false),
+                    LastName = table.Column<string>(type: "nvarchar(60)", maxLength: 60, nullable: false),
+                    Dni = table.Column<string>(type: "nvarchar(8)", maxLength: 8, nullable: false),
                     FullName = table.Column<string>(type: "nvarchar(120)", maxLength: 120, nullable: false),
                     Email = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
                     Phone = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
@@ -161,6 +165,9 @@ namespace Urbania360.Infrastructure.Migrations
                     StartDate = table.Column<DateOnly>(type: "date", nullable: false),
                     ApplyMiViviendaBonus = table.Column<bool>(type: "bit", nullable: false),
                     BonusAmount = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: true),
+                    LifeInsuranceRateMonthly = table.Column<decimal>(type: "decimal(6,4)", nullable: false),
+                    RiskInsuranceRateAnnual = table.Column<decimal>(type: "decimal(6,4)", nullable: false),
+                    FeesMonthly = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
                     TEM = table.Column<decimal>(type: "decimal(6,4)", precision: 6, scale: 4, nullable: true),
                     MonthlyPayment = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: true),
                     TCEA = table.Column<decimal>(type: "decimal(6,4)", precision: 6, scale: 4, nullable: true),
@@ -364,6 +371,12 @@ namespace Urbania360.Infrastructure.Migrations
                 name: "IX_Users_Email",
                 table: "Users",
                 column: "Email",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Users_Username",
+                table: "Users",
+                column: "Username",
                 unique: true);
         }
 

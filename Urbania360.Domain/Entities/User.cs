@@ -17,7 +17,36 @@ public class User
     public Guid Id { get; set; }
 
     /// <summary>
-    /// Nombre completo del usuario
+    /// Nombre de usuario único
+    /// </summary>
+    [Required]
+    [MaxLength(50)]
+    public string Username { get; set; } = null!;
+
+    /// <summary>
+    /// Nombre del usuario
+    /// </summary>
+    [Required]
+    [MaxLength(60)]
+    public string FirstName { get; set; } = null!;
+
+    /// <summary>
+    /// Apellidos del usuario
+    /// </summary>
+    [Required]
+    [MaxLength(60)]
+    public string LastName { get; set; } = null!;
+
+    /// <summary>
+    /// DNI del usuario (8 caracteres numéricos)
+    /// </summary>
+    [Required]
+    [MaxLength(8)]
+    [MinLength(8)]
+    public string Dni { get; set; } = null!;
+
+    /// <summary>
+    /// Nombre completo del usuario (calculado)
     /// </summary>
     [Required]
     [MaxLength(120)]

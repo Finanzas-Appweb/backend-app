@@ -16,7 +16,7 @@ public enum Role
     Agent = 2,
 
     /// <summary>
-    /// Cliente
+    /// Usuario del sistema
     /// </summary>
-    Client = 3
+    User = 3
 }
